@@ -1,7 +1,16 @@
-use std::io::{self, Read};
+use std::io;
+
+macro_rules! pub_struct {
+    ($name:ident {$($field:ident: $t:ty,)*}) => {
+        #[derive(Debug, Clone)] // ewww
+        pub struct $name {
+            $(pub $field: $t),*
+        }
+    }
+}
 
 #[derive(Debug, Clone, Copy)]
-enum DNABases {
+pub enum DNABases {
     Adenine,
     Cytosine,
     Guanine,
@@ -9,7 +18,7 @@ enum DNABases {
 }
 
 impl DNABases {
-	fn as_slice(&self) -> &str {
+	pub fn as_slice(&self) -> &str {
 		match self {
 			DNABases::Adenine => "A",
 			DNABases::Cytosine => "C",
@@ -20,7 +29,7 @@ impl DNABases {
 }
 
 #[derive(Debug, Clone, Copy)]
-enum RNABases {
+pub enum RNABases {
     Adenine,
     Cytosine,
     Guanine,
@@ -28,7 +37,7 @@ enum RNABases {
 }
 
 impl RNABases {
-	fn as_slice(&self) -> &str {
+	pub fn as_slice(&self) -> &str {
 		match self {
 			RNABases::Adenine => "A",
 			RNABases::Cytosine => "C",
@@ -38,15 +47,15 @@ impl RNABases {
 	}
 }
 
-#[derive(Debug, Clone, Copy)]
-struct Codon {
+
+pub_struct!(Codon {
     base1: DNABases,
     base2: DNABases,
     base3: DNABases,
-}
+});
 
 impl Codon {
-    fn transcribeToRNA(&self) -> RNACodon {
+    pub fn transcribeToRNA(&self) -> RNACodon {
         fn convertDNAtoRNA(base: DNABases) -> RNABases {
             match base {
                 DNABases::Adenine => RNABases::Adenine,
@@ -62,7 +71,7 @@ impl Codon {
         }
     }
 
-    fn new(bases: &str) -> io::Result<Self> {
+    pub fn new(bases: &str) -> io::Result<Self> {
         Ok(Codon {
             base1: match &bases[0..1] {
                 "A" => DNABases::Adenine,
@@ -88,40 +97,40 @@ impl Codon {
         })
     }
 
-	fn as_string(&self) -> String {
+	pub fn as_string(&self) -> String {
 		format!("{}{}{}", self.base1.as_slice(), self.base2.as_slice(), self.base3.as_slice())
 	}
 }
 
-#[derive(Debug, Clone)]
-struct TemplateStrand {
+
+pub_struct!(TemplateStrand {
     // number of codons
     length: usize,
     codons: Vec<Codon>,
-}
+});
 
-#[derive(Debug, Clone, Copy)]
-struct RNACodon {
+
+pub_struct!(RNACodon {
     base1: RNABases,
     base2: RNABases,
     base3: RNABases,
-}
+});
 
 impl RNACodon {
-	fn as_string(&self) -> String {
+	pub fn as_string(&self) -> String {
 		format!("{}{}{}", self.base1.as_slice(), self.base2.as_slice(), self.base3.as_slice())
 	}
 }
 
-#[derive(Debug, Clone)]
-struct RNA {
+
+pub_struct!(RNA {
     // number of codons
     length: usize,
     codons: Vec<RNACodon>,
-}
+});
 
 impl TemplateStrand { 
-   fn transcibeToRNA(&self) -> RNA {	
+    pub fn transcribe_to_RNA(&self) -> RNA {	
         RNA {
             length: self.length,
             codons: self.codons
@@ -132,7 +141,7 @@ impl TemplateStrand {
         }
     }
 	
-    fn from_coding_strand(string: &str) -> Result<Self, io::Error> {
+    pub fn from_coding_strand(string: &str) -> Result<Self, io::Error> {
 		let mut template = String::new();
 		for i in 0..string.len() {
 			template += match &string[i..i+1] {
@@ -146,7 +155,7 @@ impl TemplateStrand {
 		TemplateStrand::new(&template)
 	}
 
-    fn new(string: &str) -> Result<Self, io::Error> {
+    pub fn new(string: &str) -> Result<Self, io::Error> {
         if string.len() % 3 != 0 {
             return Err(
                 io::Error::new(
@@ -166,9 +175,8 @@ impl TemplateStrand {
         })
     }
 }
-
 #[derive(Debug, Clone, Copy)]
-enum AminoAcids {
+pub enum AminoAcids {
     Phenylalanine,
     Leucine,
     Tyrosine,
@@ -194,7 +202,7 @@ enum AminoAcids {
 }
 
 impl AminoAcids {
-	fn as_slice(&self) -> &str {
+	pub fn as_slice(&self) -> &str {
 		match self {
 			AminoAcids::Phenylalanine => "TTT",
 			AminoAcids::Serine => "TCT",
@@ -264,7 +272,7 @@ impl AminoAcids {
 		}
 	}
 
-	fn as_char(&self) -> &str {
+	pub fn as_char(&self) -> &str {
 		match self {
 			AminoAcids::Phenylalanine => "F",
 			AminoAcids::Serine => "S",
@@ -291,7 +299,7 @@ impl AminoAcids {
 		}
 	}
 
-	fn as_short(&self) -> &str {
+	pub fn as_short(&self) -> &str {
 		match self {
 			AminoAcids::Phenylalanine => "Phe",
 			AminoAcids::Serine => "Ser",
@@ -318,7 +326,7 @@ impl AminoAcids {
 		}
 	}
 
-	fn as_full(&self) -> &str {
+	pub fn as_full(&self) -> &str {
 		match self {
 			AminoAcids::Phenylalanine => "Phenylalanine",
 			AminoAcids::Serine => "Serine",
@@ -347,14 +355,14 @@ impl AminoAcids {
 }
 
 
-#[derive(Debug)]
-struct Protein {
+
+pub_struct!(Protein {
     length: usize,
     polypeptide: Vec<AminoAcids>,
-}
+});
 
 impl Protein {
-    fn convert_RNACodon_to_AminoAcids(codon: &RNACodon) -> AminoAcids {
+    pub fn convert_RNACodon_to_AminoAcids(codon: &RNACodon) -> AminoAcids {
         match codon.as_string().as_str() {
 			"UUU" => AminoAcids::Phenylalanine,
 			"UCU" => AminoAcids::Serine,
@@ -424,7 +432,7 @@ impl Protein {
 		}
     }
 
-    fn new(mRNA: RNA) -> Self {
+    pub fn new(mRNA: RNA) -> Self {
         // let mut protein: Protein = Protein {
         //     length: mRNA.length,
         //     polypeptide: &mut Vec::new()
