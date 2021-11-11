@@ -443,22 +443,3 @@ impl Protein {
 		}
     }
 }
-
-fn main() -> io::Result<()> {
-    println!("Enter a template strand: ");
-
-	let mut input = String::new();
-
-	io::stdin().read_line(&mut input)?;
-	input.make_ascii_uppercase();
-	input = input.replace(" ", "");
-
-	println!(
-		"{:?}", 
-		Protein::new(TemplateStrand::new(input.trim())?.transcibeToRNA()).polypeptide
-			.iter()
-			.map(|x| x.as_full())
-			.collect::<Vec<&str>>()
-	);
-    Ok(())
-}
