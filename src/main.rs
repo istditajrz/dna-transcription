@@ -1,3 +1,4 @@
+#[allow(unused_imports)]
 use std::io::{self, Read};
 use dna;
 

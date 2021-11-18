@@ -1,3 +1,5 @@
+#![allow(non_snake_case)]
+#![allow(unreachable_patterns)]
 use std::io;
 
 macro_rules! pub_struct {
