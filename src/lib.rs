@@ -1,5 +1,5 @@
 #![allow(non_snake_case, unreachable_patterns)]
-use std::io;
+use std::{io, convert::TryFrom};
 
 macro_rules! pub_struct {
     ($name:ident {$($field:ident: $t:ty,)*}) => {
@@ -27,6 +27,27 @@ impl DNABases {
 			DNABases::Thymine => "T",
 		}
 	}
+    fn to_RNA(&self) -> RNABases {
+        match self {
+            DNABases::Adenine => RNABases::Adenine,
+            DNABases::Cytosine => RNABases::Cytosine,
+            DNABases::Guanine => RNABases::Guanine,
+            DNABases::Thymine => RNABases::Uracil
+        }
+    }
+}
+
+impl std::convert::TryFrom<&str> for DNABases {
+    type Error = io::Error;
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        match value {
+            "A" => Ok(DNABases::Adenine),
+            "C" => Ok(DNABases::Cytosine),
+            "G" => Ok(DNABases::Guanine),
+            "T" => Ok(DNABases::Thymine),
+            _ =>   Err(io::Error::new(io::ErrorKind::InvalidData, "Invalid base inputted")),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -57,49 +78,24 @@ pub_struct!(Codon {
 
 impl Codon {
     pub fn transcribeToRNA(&self) -> RNACodon {
-        fn convertDNAtoRNA(base: DNABases) -> RNABases {
-            match base {
-                DNABases::Adenine => RNABases::Adenine,
-                DNABases::Cytosine => RNABases::Cytosine,
-                DNABases::Guanine => RNABases::Guanine,
-                DNABases::Thymine => RNABases::Uracil
-            }
-        }
         RNACodon {
-            base1: convertDNAtoRNA(self.base1),
-            base2: convertDNAtoRNA(self.base2),
-            base3: convertDNAtoRNA(self.base3),
+            base1: self.base1.to_RNA(),
+            base2: self.base2.to_RNA(),
+            base3: self.base3.to_RNA(),
         }
     }
 
     pub fn new(bases: &str) -> io::Result<Self> {
         Ok(Codon {
-            base1: match &bases[0..1] {
-                "A" => DNABases::Adenine,
-                "C" => DNABases::Cytosine,
-                "G" => DNABases::Guanine,
-                "T" => DNABases::Thymine,
-                _ => return Err(io::Error::new(io::ErrorKind::InvalidData, "Invalid base inputted")),
-            },
-            base2: match &bases[1..2] { 
-                "A" => DNABases::Adenine,
-                "C" => DNABases::Cytosine,
-                "G" => DNABases::Guanine,
-                "T" => DNABases::Thymine,
-                _ => return Err(io::Error::new(io::ErrorKind::InvalidData, "Invalid base inputted")),
-            },
-            base3: match &bases[2..3] { 
-                "A" => DNABases::Adenine,
-                "C" => DNABases::Cytosine,
-                "G" => DNABases::Guanine,
-                "T" => DNABases::Thymine,
-                _ => return Err(io::Error::new(io::ErrorKind::InvalidData, "Invalid base inputted")),
-            }
+            base1: DNABases::try_from(&bases[0..1])?,
+            base2: DNABases::try_from(&bases[1..2])?,
+            base3: DNABases::try_from(&bases[2..3])?,
         })
     }
-
-	pub fn as_string(&self) -> String {
-		format!("{}{}{}", self.base1.as_slice(), self.base2.as_slice(), self.base3.as_slice())
+}
+impl std::fmt::Display for Codon {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		write!(f, "{}{}{}", self.base1.as_slice(), self.base2.as_slice(), self.base3.as_slice())
 	}
 }
 
@@ -117,9 +113,9 @@ pub_struct!(RNACodon {
     base3: RNABases,
 });
 
-impl RNACodon {
-	pub fn as_string(&self) -> String {
-		format!("{}{}{}", self.base1.as_slice(), self.base2.as_slice(), self.base3.as_slice())
+impl std::fmt::Display for RNACodon {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		write!(f, "{}{}{}", self.base1.as_slice(), self.base2.as_slice(), self.base3.as_slice())
 	}
 }
 
@@ -202,8 +198,8 @@ pub enum AminoAcids {
 	NotFound,
 }
 
-impl AminoAcids {
-	pub fn as_slice(&self) -> &str {
+impl std::convert::Into<&'static str> for AminoAcids {
+    fn into(self) -> &'static str {
 		match self {
 			AminoAcids::Phenylalanine => "TTT",
 			AminoAcids::Serine => "TCT",
@@ -272,34 +268,36 @@ impl AminoAcids {
 			AminoAcids::NotFound => "XXX"
 		}
 	}
-
-	pub fn as_char(&self) -> &str {
+}
+impl std::convert::Into<char> for AminoAcids {
+    fn into(self) -> char {
 		match self {
-			AminoAcids::Phenylalanine => "F",
-			AminoAcids::Serine => "S",
-			AminoAcids::Tyrosine => "Y",
-			AminoAcids::Cysteine => "C",
-			AminoAcids::Leucine => "L",
-			AminoAcids::Stop => "*",
-			AminoAcids::Tryptophan => "W",
-			AminoAcids::Proline => "P",
-			AminoAcids::Histidine => "H",
-			AminoAcids::Arginine => "R",
-			AminoAcids::Glutamine => "Q",
-			AminoAcids::Isoleucine => "I",
-			AminoAcids::Threonine => "T",
-			AminoAcids::Asparagine => "N",
-			AminoAcids::Lysine => "K",
-			AminoAcids::Methionine => "M",
-			AminoAcids::Valine => "V",
-			AminoAcids::Alanine => "A",
-			AminoAcids::AsparticAcid => "D",
-			AminoAcids::Glycine => "G",
-			AminoAcids::GlutamicAcid => "E",
-			AminoAcids::NotFound => "X",
+			AminoAcids::Phenylalanine   => 'F',
+			AminoAcids::Serine          => 'S',
+			AminoAcids::Tyrosine        => 'Y',
+			AminoAcids::Cysteine        => 'C',
+			AminoAcids::Leucine         => 'L',
+			AminoAcids::Stop            => '*',
+			AminoAcids::Tryptophan      => 'W',
+			AminoAcids::Proline         => 'P',
+			AminoAcids::Histidine       => 'H',
+			AminoAcids::Arginine        => 'R',
+			AminoAcids::Glutamine       => 'Q',
+			AminoAcids::Isoleucine      => 'I',
+			AminoAcids::Threonine       => 'T',
+			AminoAcids::Asparagine      => 'N',
+			AminoAcids::Lysine          => 'K',
+			AminoAcids::Methionine      => 'M',
+			AminoAcids::Valine          => 'V',
+			AminoAcids::Alanine         => 'A',
+			AminoAcids::AsparticAcid    => 'D',
+			AminoAcids::Glycine         => 'G',
+			AminoAcids::GlutamicAcid    => 'E',
+			AminoAcids::NotFound        => 'X',
 		}
 	}
-
+}
+impl AminoAcids {
 	pub fn as_short(&self) -> &str {
 		match self {
 			AminoAcids::Phenylalanine => "Phe",
@@ -355,7 +353,82 @@ impl AminoAcids {
 	}
 }
 
-
+impl std::convert::From<&RNACodon> for AminoAcids {
+    fn from(codon: &RNACodon) -> Self {
+        match (codon.base1, codon.base2, codon.base3) {
+            (RNABases::Uracil, RNABases::Uracil, RNABases::Uracil)          => AminoAcids::Phenylalanine,
+            (RNABases::Uracil, RNABases::Cytosine, RNABases::Uracil)        => AminoAcids::Serine,
+            (RNABases::Uracil, RNABases::Adenine, RNABases::Uracil)         => AminoAcids::Tyrosine,
+            (RNABases::Uracil, RNABases::Guanine, RNABases::Uracil)         => AminoAcids::Cysteine,
+            (RNABases::Uracil, RNABases::Uracil, RNABases::Cytosine)        => AminoAcids::Phenylalanine,
+            (RNABases::Uracil, RNABases::Cytosine, RNABases::Cytosine)      => AminoAcids::Serine,
+            (RNABases::Uracil, RNABases::Adenine, RNABases::Cytosine)       => AminoAcids::Tyrosine,
+            (RNABases::Uracil, RNABases::Guanine, RNABases::Cytosine)       => AminoAcids::Cysteine,
+            (RNABases::Uracil, RNABases::Uracil, RNABases::Adenine)         => AminoAcids::Leucine,
+            (RNABases::Uracil, RNABases::Cytosine, RNABases::Adenine)       => AminoAcids::Serine,
+            (RNABases::Uracil, RNABases::Adenine, RNABases::Adenine)        => AminoAcids::Stop,
+            (RNABases::Uracil, RNABases::Guanine, RNABases::Adenine)        => AminoAcids::Stop,
+            (RNABases::Uracil, RNABases::Uracil, RNABases::Guanine)         => AminoAcids::Leucine,
+            (RNABases::Uracil, RNABases::Cytosine, RNABases::Guanine)       => AminoAcids::Serine,
+            (RNABases::Uracil, RNABases::Adenine, RNABases::Guanine)        => AminoAcids::Stop,
+            (RNABases::Uracil, RNABases::Guanine, RNABases::Guanine)        => AminoAcids::Tryptophan,
+            (RNABases::Cytosine, RNABases::Uracil, RNABases::Uracil)        => AminoAcids::Leucine,
+            (RNABases::Cytosine, RNABases::Cytosine, RNABases::Uracil)      => AminoAcids::Proline,
+            (RNABases::Cytosine, RNABases::Adenine, RNABases::Uracil)       => AminoAcids::Histidine,
+            (RNABases::Cytosine, RNABases::Guanine, RNABases::Uracil)       => AminoAcids::Arginine,
+            (RNABases::Cytosine, RNABases::Uracil, RNABases::Cytosine)      => AminoAcids::Leucine,
+            (RNABases::Cytosine, RNABases::Cytosine, RNABases::Cytosine)    => AminoAcids::Proline,
+            (RNABases::Cytosine, RNABases::Adenine, RNABases::Cytosine)     => AminoAcids::Histidine,
+            (RNABases::Cytosine, RNABases::Guanine, RNABases::Cytosine)     => AminoAcids::Arginine,
+            (RNABases::Cytosine, RNABases::Uracil, RNABases::Adenine)       => AminoAcids::Leucine,
+            (RNABases::Cytosine, RNABases::Cytosine, RNABases::Adenine)     => AminoAcids::Proline,
+            (RNABases::Cytosine, RNABases::Adenine, RNABases::Adenine)      => AminoAcids::Glutamine,
+            (RNABases::Cytosine, RNABases::Guanine, RNABases::Adenine)      => AminoAcids::Arginine,
+            (RNABases::Cytosine, RNABases::Uracil, RNABases::Guanine)       => AminoAcids::Leucine,
+            (RNABases::Cytosine, RNABases::Cytosine, RNABases::Guanine)     => AminoAcids::Proline,
+            (RNABases::Cytosine, RNABases::Adenine, RNABases::Guanine)      => AminoAcids::Glutamine,
+            (RNABases::Cytosine, RNABases::Guanine, RNABases::Guanine)      => AminoAcids::Arginine,
+            (RNABases::Adenine, RNABases::Uracil, RNABases::Uracil)         => AminoAcids::Isoleucine,
+            (RNABases::Adenine, RNABases::Cytosine, RNABases::Uracil)       => AminoAcids::Threonine,
+            (RNABases::Adenine, RNABases::Adenine, RNABases::Uracil)        => AminoAcids::Asparagine,
+            (RNABases::Adenine, RNABases::Guanine, RNABases::Uracil)        => AminoAcids::Serine,
+            (RNABases::Adenine, RNABases::Uracil, RNABases::Cytosine)       => AminoAcids::Isoleucine,
+            (RNABases::Adenine, RNABases::Cytosine, RNABases::Cytosine)     => AminoAcids::Threonine,
+            (RNABases::Adenine, RNABases::Adenine, RNABases::Cytosine)      => AminoAcids::Asparagine,
+            (RNABases::Adenine, RNABases::Guanine, RNABases::Cytosine)      => AminoAcids::Serine,
+            (RNABases::Adenine, RNABases::Uracil, RNABases::Adenine)        => AminoAcids::Isoleucine,
+            (RNABases::Adenine, RNABases::Cytosine, RNABases::Adenine)      => AminoAcids::Threonine,
+            (RNABases::Adenine, RNABases::Adenine, RNABases::Adenine)       => AminoAcids::Lysine,
+            (RNABases::Adenine, RNABases::Guanine, RNABases::Adenine)       => AminoAcids::Arginine,
+            (RNABases::Adenine, RNABases::Uracil, RNABases::Guanine)        => AminoAcids::Methionine,
+            (RNABases::Adenine, RNABases::Cytosine, RNABases::Guanine)      => AminoAcids::Threonine,
+            (RNABases::Adenine, RNABases::Adenine, RNABases::Guanine)       => AminoAcids::Lysine,
+            (RNABases::Adenine, RNABases::Guanine, RNABases::Guanine)       => AminoAcids::Arginine,
+            (RNABases::Guanine, RNABases::Uracil, RNABases::Uracil)         => AminoAcids::Valine,
+            (RNABases::Guanine, RNABases::Cytosine, RNABases::Uracil)       => AminoAcids::Alanine,
+            (RNABases::Guanine, RNABases::Adenine, RNABases::Uracil)        => AminoAcids::AsparticAcid,
+            (RNABases::Guanine, RNABases::Guanine, RNABases::Uracil)        => AminoAcids::Glycine,
+            (RNABases::Guanine, RNABases::Uracil, RNABases::Cytosine)       => AminoAcids::Valine,
+            (RNABases::Guanine, RNABases::Cytosine, RNABases::Cytosine)     => AminoAcids::Alanine,
+            (RNABases::Guanine, RNABases::Adenine, RNABases::Cytosine)      => AminoAcids::AsparticAcid,
+            (RNABases::Guanine, RNABases::Guanine, RNABases::Cytosine)      => AminoAcids::Glycine,
+            (RNABases::Guanine, RNABases::Uracil, RNABases::Adenine)        => AminoAcids::Valine,
+            (RNABases::Guanine, RNABases::Cytosine, RNABases::Adenine)      => AminoAcids::Alanine,
+            (RNABases::Guanine, RNABases::Adenine, RNABases::Adenine)       => AminoAcids::GlutamicAcid,
+            (RNABases::Guanine, RNABases::Guanine, RNABases::Adenine)       => AminoAcids::Glycine,
+            (RNABases::Guanine, RNABases::Uracil, RNABases::Guanine)        => AminoAcids::Valine,
+            (RNABases::Guanine, RNABases::Cytosine, RNABases::Guanine)      => AminoAcids::Alanine,
+            (RNABases::Guanine, RNABases::Adenine, RNABases::Guanine)       => AminoAcids::GlutamicAcid,
+            (RNABases::Guanine, RNABases::Guanine, RNABases::Guanine)       => AminoAcids::Glycine,
+            _                                                               => AminoAcids::NotFound
+        }
+    }
+}
+impl std::fmt::Display for AminoAcids {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.as_full())
+    }
+}
 
 pub_struct!(Protein {
     length: usize,
@@ -363,91 +436,12 @@ pub_struct!(Protein {
 });
 
 impl Protein {
-    pub fn convert_RNACodon_to_AminoAcids(codon: &RNACodon) -> AminoAcids {
-        match codon.as_string().as_str() {
-			"UUU" => AminoAcids::Phenylalanine,
-			"UCU" => AminoAcids::Serine,
-			"UAU" => AminoAcids::Tyrosine,
-			"UGU" => AminoAcids::Cysteine,
-			"UUC" => AminoAcids::Phenylalanine,
-			"UCC" => AminoAcids::Serine,
-			"UAC" => AminoAcids::Tyrosine,
-			"UGC" => AminoAcids::Cysteine,
-			"UUA" => AminoAcids::Leucine,
-			"UCA" => AminoAcids::Serine,
-			"UAA" => AminoAcids::Stop,
-			"UGA" => AminoAcids::Stop,
-			"UUG" => AminoAcids::Leucine,
-			"UCG" => AminoAcids::Serine,
-			"UAG" => AminoAcids::Stop,
-			"UGG" => AminoAcids::Tryptophan,
-			"CUU" => AminoAcids::Leucine,
-			"CCU" => AminoAcids::Proline,
-			"CAU" => AminoAcids::Histidine,
-			"CGU" => AminoAcids::Arginine,
-			"CUC" => AminoAcids::Leucine,
-			"CCC" => AminoAcids::Proline,
-			"CAC" => AminoAcids::Histidine,
-			"CGC" => AminoAcids::Arginine,
-			"CUA" => AminoAcids::Leucine,
-			"CCA" => AminoAcids::Proline,
-			"CAA" => AminoAcids::Glutamine,
-			"CGA" => AminoAcids::Arginine,
-			"CUG" => AminoAcids::Leucine,
-			"CCG" => AminoAcids::Proline,
-			"CAG" => AminoAcids::Glutamine,
-			"CGG" => AminoAcids::Arginine,
-			"AUU" => AminoAcids::Isoleucine,
-			"ACU" => AminoAcids::Threonine,
-			"AAU" => AminoAcids::Asparagine,
-			"AGU" => AminoAcids::Serine,
-			"AUC" => AminoAcids::Isoleucine,
-			"ACC" => AminoAcids::Threonine,
-			"AAC" => AminoAcids::Asparagine,
-			"AGC" => AminoAcids::Serine,
-			"AUA" => AminoAcids::Isoleucine,
-			"ACA" => AminoAcids::Threonine,
-			"AAA" => AminoAcids::Lysine,
-			"AGA" => AminoAcids::Arginine,
-			"AUG" => AminoAcids::Methionine,
-			"ACG" => AminoAcids::Threonine,
-			"AAG" => AminoAcids::Lysine,
-			"AGG" => AminoAcids::Arginine,
-			"GUU" => AminoAcids::Valine,
-			"GCU" => AminoAcids::Alanine,
-			"GAU" => AminoAcids::AsparticAcid,
-			"GGU" => AminoAcids::Glycine,
-			"GUC" => AminoAcids::Valine,
-			"GCC" => AminoAcids::Alanine,
-			"GAC" => AminoAcids::AsparticAcid,
-			"GGC" => AminoAcids::Glycine,
-			"GUA" => AminoAcids::Valine,
-			"GCA" => AminoAcids::Alanine,
-			"GAA" => AminoAcids::GlutamicAcid,
-			"GGA" => AminoAcids::Glycine,
-			"GUG" => AminoAcids::Valine,
-			"GCG" => AminoAcids::Alanine,
-			"GAG" => AminoAcids::GlutamicAcid,
-			"GGG" => AminoAcids::Glycine,
-			_ => AminoAcids::NotFound
-		}
-    }
-
     pub fn new(mRNA: RNA) -> Self {
-        // let mut protein: Protein = Protein {
-        //     length: mRNA.length,
-        //     polypeptide: &mut Vec::new()
-        // }; 
-        // for codon in 0..mRNA.length {
-        //     (*protein.polypeptide).push(Protein::convertRNACodonToAminoAcid(mRNA.codons[codon]));
-        // }
-        // protein.clone()
-
 		Protein {
 			length: mRNA.length,
 			polypeptide: mRNA.codons
 							.iter()
-							.map(|x| Protein::convert_RNACodon_to_AminoAcids(x))
+							.map(|x: &RNACodon| x.into())
 							.collect::<Vec<AminoAcids>>()
 		}
     }
